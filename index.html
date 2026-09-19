@@ -157,7 +157,7 @@ function recipeNameSet(){ return new Set(STATE.recipes.keys()); }
 
 function viewWeek(){
   const d = STATE.week.data;
-  let html = '<div class="goal"><b>本周目标</b>：2500 kcal/天 · 蛋白165g/天（维持/温和缺口，医疗约束未解除前不加大）<br>早餐：'+ (d.breakfast_note||'') +'</div>';
+  let html = '<div class="goal"><b>本周目标</b>：'+ (d.goal_note||'') +'<br>早餐：'+ (d.breakfast_note||'') +'</div>';
   for(let i=1;i<=7;i++){
     const date = d['day'+i+'_date'];
     if(!date) continue;
