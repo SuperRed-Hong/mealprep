@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>减脂备餐周菜单</title>
+<style>
+  :root{
+    --bg:#faf8f5; --card:#ffffff; --ink:#2b2622; --sub:#847a70;
+    --accent:#d97742; --accent2:#5c8a5c; --border:#ece6dd; --chip:#f3ede3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    padding-bottom:60px;}
+  header{position:sticky;top:0;z-index:10;background:var(--accent);color:#fff;
+    padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+  header h1{font-size:17px;margin:0;font-weight:600}
+  nav{display:flex;gap:8px}
+  nav button{background:rgba(255,255,255,.18);border:none;color:#fff;padding:7px 12px;
+    border-radius:20px;font-size:13px}
+  nav button.active{background:#fff;color:var(--accent);font-weight:600}
+  main{padding:14px 16px;max-width:640px;margin:0 auto}
+  .goal{background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--sub)}
+  .goal b{color:var(--ink)}
+  .day{background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:12px 14px;margin-bottom:12px}
+  .day .label{font-weight:700;font-size:15px;margin-bottom:8px}
+  .day .date{color:var(--sub);font-weight:400;font-size:13px;margin-left:6px}
+  .meal-row{display:flex;gap:8px;margin-top:6px}
+  .meal-btn{flex:1;text-align:left;background:var(--chip);border:none;border-radius:10px;
+    padding:10px 12px;font-size:14px;color:var(--ink)}
+  .meal-btn .tag{display:block;font-size:11px;color:var(--sub);margin-bottom:2px}
+  .meal-btn:active{background:var(--border)}
+  .videowrap{position:relative;width:100%;padding-top:56.25%;background:#000;border-radius:14px;overflow:hidden;margin-bottom:12px}
+  .videowrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
+  .backbtn{background:none;border:none;color:var(--accent);font-size:15px;padding:6px 0 12px;font-weight:600}
+  .title{font-size:19px;font-weight:700;margin:0 0 8px}
+  .meta-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .badge{background:var(--chip);border-radius:20px;padding:5px 11px;font-size:12px;color:var(--sub)}
+  .stat-row{display:flex;gap:10px;margin-bottom:14px}
+  .stat{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:10px;text-align:center}
+  .stat .num{font-size:20px;font-weight:700;color:var(--accent)}
+  .stat .lb{font-size:11px;color:var(--sub)}
+  .estimate-note{font-size:11px;color:var(--sub);margin:-8px 0 14px}
+  section.block{background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:12px 14px;margin-bottom:12px}
+  section.block h3{font-size:14px;margin:0 0 8px;color:var(--accent2)}
+  section.block ul{margin:0;padding-left:18px;font-size:14px;line-height:1.6}
+  section.block ol{margin:0;padding-left:20px;font-size:14px;line-height:1.7}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chips span{background:var(--chip);border-radius:20px;padding:4px 10px;font-size:12px}
+  .shop-group{margin-bottom:16px}
+  .shop-group h3{font-size:14px;color:var(--accent2);margin:0 0 8px}
+  .shop-item{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--border);font-size:14px}
+  .shop-item input{width:19px;height:19px;flex-shrink:0}
+  .shop-item.checked span{text-decoration:line-through;color:var(--sub)}
+  .loading{color:var(--sub);padding:30px;text-align:center;font-size:13px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🍱 减脂备餐</h1>
+  <nav id="nav">
+    <button data-r="#/" id="nav-week">本周</button>
+    <button data-r="#/shopping" id="nav-shop">采购单</button>
+  </nav>
+</header>
+<main id="app"><div class="loading">加载中…</div></main>
+
+<script>
+const DATA_BASE = '.'; // same-origin static files
+
+function parseFrontmatter(raw){
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  if(!m) return {data:{}, body: raw};
+  const lines = m[1].split(/\r?\n/);
+  const data = {};
+  let curKey = null;
+  for(const line of lines){
+    const listMatch = line.match(/^\s*-\s+(.*)$/);
+    if(listMatch && curKey){
+      if(!Array.isArray(data[curKey])) data[curKey] = [];
+      data[curKey].push(listMatch[1].trim());
+      continue;
+    }
+    const kv = line.match(/^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$/);
+    if(kv){
+      const key = kv[1], val = kv[2].trim();
+      if(val === ''){ curKey = key; data[key] = []; }
+      else {
+        curKey = null;
+        let v = val;
+        if((v.startsWith('"')&&v.endsWith('"'))||(v.startsWith("'")&&v.endsWith("'"))) v = v.slice(1,-1);
+        data[key] = v;
+      }
+    }
+  }
+  return {data, body: m[2] || ''};
+}
+
+function ytId(url){
+  const m = (url||'').match(/[?&]v=([^&]+)/) || (url||'').match(/youtu\.be\/([^?&]+)/);
+  return m ? m[1] : null;
+}
+
+function mdInline(text, recipeNames){
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[\[(.+?)\]\]/g, (all, name) => {
+      if(recipeNames && recipeNames.has(name)){
+        return '<a href="#/recipe/'+encodeURIComponent(name)+'">'+name+'</a>';
+      }
+      return name;
+    });
+}
+
+function renderBody(body, recipeNames){
+  const lines = body.split(/\r?\n/);
+  let html = '', inList = false;
+  for(const raw of lines){
+    const line = raw.trim();
+    if(line === ''){ if(inList){html+='</ul>';inList=false;} continue; }
+    if(/^##\s+/.test(line)){ if(inList){html+='</ul>';inList=false;} html += '<h3>'+mdInline(line.replace(/^##\s+/,''), recipeNames)+'</h3>'; continue; }
+    if(/^#\s+/.test(line)){ continue; } // title shown elsewhere
+    const li = line.match(/^-\s+(.*)$/);
+    if(li){ if(!inList){html+='<ul>';inList=true;} html += '<li>'+mdInline(li[1], recipeNames)+'</li>'; continue; }
+    const oli = line.match(/^\d+\.\s+(.*)$/);
+    if(oli){ if(!inList){html+='<ol>';inList='ol';} html += '<li>'+mdInline(oli[1], recipeNames)+'</li>'; continue; }
+    if(inList){ html += (inList==='ol'?'</ol>':'</ul>'); inList=false; }
+    html += '<p>'+mdInline(line, recipeNames)+'</p>';
+  }
+  if(inList) html += (inList==='ol'?'</ol>':'</ul>');
+  return html;
+}
+
+let STATE = { week:null, shopping:null, recipes:new Map() };
+
+async function loadAll(){
+  const manifest = await fetch(DATA_BASE+'/data/manifest.json').then(r=>r.json());
+  const weekRaw = await fetch(DATA_BASE+'/'+encodeURI(manifest.week)).then(r=>r.text());
+  STATE.week = parseFrontmatter(weekRaw);
+  const shopRaw = await fetch(DATA_BASE+'/'+encodeURI(manifest.shopping)).then(r=>r.text());
+  STATE.shopping = parseFrontmatter(shopRaw);
+  for(const path of manifest.recipes){
+    const raw = await fetch(DATA_BASE+'/'+encodeURI(path)).then(r=>r.text());
+    const parsed = parseFrontmatter(raw);
+    const name = path.split('/').pop().replace(/\.md$/,'');
+    STATE.recipes.set(name, parsed);
+  }
+}
+
+function recipeNameSet(){ return new Set(STATE.recipes.keys()); }
+
+function viewWeek(){
+  const d = STATE.week.data;
+  let html = '<div class="goal"><b>本周目标</b>：2500 kcal/天 · 蛋白165g/天（维持/温和缺口，医疗约束未解除前不加大）<br>早餐：'+ (d.breakfast_note||'') +'</div>';
+  for(let i=1;i<=7;i++){
+    const date = d['day'+i+'_date'];
+    if(!date) continue;
+    const label = d['day'+i+'_label'] || date;
+    const lunch = d['day'+i+'_lunch'];
+    const dinner = d['day'+i+'_dinner'];
+    html += '<div class="day"><div class="label">'+label+'<span class="date">'+date+'</span></div>';
+    html += '<div class="meal-row">';
+    if(lunch) html += mealBtn('午餐', lunch);
+    if(dinner) html += mealBtn('晚餐', dinner);
+    html += '</div></div>';
+  }
+  document.getElementById('app').innerHTML = html;
+}
+function mealBtn(tag, name){
+  const exists = STATE.recipes.has(name);
+  return '<button class="meal-btn" '+(exists?('onclick="location.hash=\'#/recipe/'+encodeURIComponent(name)+'\'"'):'')+'>'+
+    '<span class="tag">'+tag+'</span>'+name+'</button>';
+}
+
+function viewRecipe(name){
+  const r = STATE.recipes.get(name);
+  const app = document.getElementById('app');
+  if(!r){ app.innerHTML = '<div class="loading">没找到这道菜：'+name+'</div>'; return; }
+  const d = r.data;
+  const vid = ytId(d.video_url);
+  let html = '<button class="backbtn" onclick="location.hash=\'#/\'">‹ 返回本周</button>';
+  if(vid){
+    html += '<div class="videowrap"><iframe src="https://www.youtube.com/embed/'+vid+'" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>';
+  }
+  html += '<div class="title">'+name+'</div>';
+  html += '<div class="meta-row">';
+  if(d.video_platform) html += '<span class="badge">'+d.video_platform+'</span>';
+  if(d.video_duration) html += '<span class="badge">'+d.video_duration+'</span>';
+  if(d.video_language) html += '<span class="badge">'+d.video_language+'</span>';
+  html += '</div>';
+  if(d.video_title) html += '<div class="estimate-note">视频标题：'+d.video_title+'</div>';
+  html += '<div class="stat-row">';
+  html += '<div class="stat"><div class="num">'+(d.servings||'-')+'</div><div class="lb">份</div></div>';
+  html += '<div class="stat"><div class="num">'+(d.kcal_per_serving||'-')+'</div><div class="lb">kcal/份</div></div>';
+  html += '<div class="stat"><div class="num">'+(d.protein_per_serving_g||'-')+'g</div><div class="lb">蛋白/份</div></div>';
+  html += '</div>';
+  if(d.is_estimate === 'true' || d.is_estimate === true) html += '<div class="estimate-note">热量蛋白为估算值，非营养标签实测。</div>';
+  if(d.equipment && d.equipment.length){
+    html += '<section class="block"><h3>用到的厨具</h3><div class="chips">'+d.equipment.map(e=>'<span>'+e+'</span>').join('')+'</div></section>';
+  }
+  if(d.ingredients && d.ingredients.length){
+    html += '<section class="block"><h3>食材</h3><ul>'+d.ingredients.map(i=>'<li>'+i+'</li>').join('')+'</ul></section>';
+  }
+  html += '<section class="block"><h3>步骤</h3>'+renderBody(r.body, recipeNameSet())+'</section>';
+  app.innerHTML = html;
+}
+
+function shopKey(text){ return 'mealprep_shop_'+btoa(unescape(encodeURIComponent(text))); }
+
+function viewShopping(){
+  const body = STATE.shopping.body;
+  const lines = body.split(/\r?\n/);
+  let html = '', curGroup = null, groupHtml = '';
+  function flush(){
+    if(curGroup !== null){ html += '<div class="shop-group"><h3>'+curGroup+'</h3>'+groupHtml+'</div>'; }
+  }
+  for(const raw of lines){
+    const line = raw.trim();
+    const h = line.match(/^##\s+(.*)$/);
+    if(h){ flush(); curGroup = h[1]; groupHtml=''; continue; }
+    const item = line.match(/^-\s+\[( |x)\]\s+(.*)$/i);
+    if(item){
+      const text = item[2];
+      const key = shopKey(text);
+      const stored = localStorage.getItem(key);
+      const checked = stored !== null ? stored === '1' : /x/i.test(item[1]);
+      groupHtml += '<label class="shop-item'+(checked?' checked':'')+'" data-key="'+key+'">'+
+        '<input type="checkbox" '+(checked?'checked':'')+' onchange="toggleShop(this)">'+
+        '<span>'+text+'</span></label>';
+    }
+  }
+  flush();
+  document.getElementById('app').innerHTML = html || '<div class="loading">采购单是空的</div>';
+}
+function toggleShop(el){
+  const key = el.closest('.shop-item').dataset.key;
+  localStorage.setItem(key, el.checked ? '1':'0');
+  el.closest('.shop-item').classList.toggle('checked', el.checked);
+}
+
+function setActiveNav(route){
+  document.getElementById('nav-week').classList.toggle('active', route === '#/' || route.startsWith('#/recipe'));
+  document.getElementById('nav-shop').classList.toggle('active', route === '#/shopping');
+}
+
+function router(){
+  const route = location.hash || '#/';
+  setActiveNav(route);
+  window.scrollTo(0,0);
+  if(route === '#/' || route === ''){ viewWeek(); return; }
+  if(route === '#/shopping'){ viewShopping(); return; }
+  const rm = route.match(/^#\/recipe\/(.+)$/);
+  if(rm){ viewRecipe(decodeURIComponent(rm[1])); return; }
+  viewWeek();
+}
+
+window.addEventListener('hashchange', router);
+loadAll().then(router).catch(err=>{
+  document.getElementById('app').innerHTML = '<div class="loading">加载失败：'+err.message+'</div>';
+});
+</script>
+</body>
+</html>

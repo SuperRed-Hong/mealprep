@@ -1,0 +1,17 @@
+# Obsidian workspace/local config (never commit — may contain local paths/state)
+.obsidian/
+.trash/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor/temp
+*.tmp
+*~
+
+# In case Quartz or any Node tooling is ever added later
+node_modules/
+.quartz-cache/
+public/
